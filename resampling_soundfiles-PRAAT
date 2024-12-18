@@ -1,0 +1,47 @@
+###################################################################################
+#                Resampling Sound files in PRAAT
+# This PRAAT script resamples sound files in a specified directory
+#  
+#  1) Resampled at 16Khz, 50 and scaled intensity at 65
+#  2) Resamples ALL sound files within the loop, to ensure consistency across files
+#
+# (c) Lucy Jackson (2024)/https://lucy-jackson.github.io/
+###################################################################################
+
+form Files
+    sentence Directory C:Directorypath/
+    sentence OutputDir C:/OutputPath/resampled/
+    sentence Sound_file_extension .wav
+endform
+
+# Create a Strings list of all WAV files in the input directory
+Create Strings as file list... list 'directory$'*'Sound_file_extension$'
+numberOfFiles = Get number of strings
+
+writeInfoLine: "Number of files to be processed: " + string$(numberOfFiles)
+
+for ifile to numberOfFiles
+    select Strings list
+    item$ = Get string... ifile  
+# Get the filename, including extension
+
+    # Read the sound file
+    Read from file... 'directory$''item$'
+    Scale intensity... 65
+    Resample: 16000, 50
+
+    # Extract the filename without extension
+    filename$ = left$(item$, length(item$) - length(sound_file_extension$))
+
+    # Construct the output file path
+    output_file_path$ = outputDir$ + "/" + filename$ + sound_file_extension$
+
+    # Save the resampled sound file
+    #Save as WAV file... output_file_path$
+    Write to WAV file... 'outputDir$''item$'
+
+
+    writeInfoLine: "Resampled file saved to: " + output_file_path$
+endfor
+
+printline "Resampling complete. Resampled files are saved in " + outputDir$
