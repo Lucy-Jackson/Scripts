@@ -1,0 +1,163 @@
+#############################################################################################################################################
+#                SPLICE AND DICE - PRAAT script
+#            This PRAAT script takes two specified .wav files and splices the target sounds into the opposing .wavs
+#            Result: two new .wav files with the cross-spliced sounds embedded. 
+#
+#            REQUIREMENTS:
+#            1) 2 .wav files with respective .textgrid files.
+#            2) Textgrid files contains tier 2 with the boundary 'target' to specify the desired speech segment to be extracted and spliced.
+#            3) Concatenated sound chains are saved so that the file name indicates which target word has been spliced into which sentence.
+#            4) Resulting spliced files are resampled for universal sampling frequencies.  
+#            5) This script contains a hardcoded directory, but you will be able to loop through the directory if desired
+#           
+#
+#
+#          Example from below script splices the two sentences:
+#          "I used the knife to cut the cake" vs "I used the knife to slice the cake"
+#          Textgrid files mark the following words as targets on tier 2 ('slice' and 'cut')
+#          Result: The initial cut-cake sentence now has the 'slice' target object spliced into the wav file, 
+#          and slice-cake sentence has 'cut' target object spliced
+#
+#
+#  Happy splicing!
+# (c) Lucy Jackson (2024)/https://lucy-jackson.github.io/
+#############################################################################################################################################
+
+
+# Define the ExtractBits procedure first
+procedure ExtractBits: gridname, soundname
+
+               selectObject: soundname
+   	       Scale intensity... 65
+    
+               resampled = Resample: 16000, 50
+               
+               # Resampling created a new object so let's get rid of soundname
+               selectObject: soundname
+               Remove
+               
+               # Extract the beginning of the carrier
+               selectObject: resampled
+    	       carrier_beginning = Extract part: 0, targetOnset, "rectangular", 1, "no"
+               
+               # Extract the target
+               selectObject: resampled
+               target = Extract part: targetOnset, targetOffset, "rectangular", 1, "no"
+
+               # Extract the end of the carrier
+               selectObject: resampled
+               carrier_end = Extract part: targetOffset, length, "rectangular", 1, "no"
+
+endproc
+
+# Main script
+
+tg_cut = Read from file: "C:textgrid-directorypath.TextGrid"
+tg_slice = Read from file: "C:textgrid-directorypath.TextGrid"
+wav_slice = Read from file: "C:soundfile-directorypath.TextGride.wav"
+wav_cut = Read from file: "C:soundfile-directorypath.TextGrid.wav"
+
+# Extract and process tg_cut
+selectObject: tg_cut
+num_intervals = Get number of intervals: 1
+
+# Get the length of the TextGrid
+length = Get total duration
+
+# Cycle through intervals in tg_cut on tier 1
+for interval from 1 to num_intervals
+    selectObject: tg_cut
+    label$ = Get label of interval... 1 interval
+    if label$ = "target"
+        targetOnset = Get starting point... 1 interval
+        targetOffset = Get end point... 1 interval     
+
+        # Extract parts of the first file
+        @ExtractBits: tg_cut, wav_cut
+        carrier_beginning_1 = carrier_beginning
+        target_1 = target
+        carrier_end_1 = carrier_end
+    endif
+endfor
+
+# Now process tg_slice
+selectObject: tg_slice
+num_intervals = Get number of intervals: 1
+
+# Get the length of the second TextGrid
+length = Get total duration
+
+# Cycle through intervals in tg_slice on tier 1
+for interval from 1 to num_intervals
+    selectObject: tg_slice
+    label$ = Get label of interval... 1 interval
+    if label$ = "target"
+        targetOnset = Get starting point... 1 interval
+        targetOffset = Get end point... 1 interval     
+
+        # Extract parts of the second file
+        @ExtractBits: tg_slice, wav_slice
+        carrier_beginning_2 = carrier_beginning
+        target_2 = target
+        carrier_end_2 = carrier_end
+    endif
+endfor
+
+# Rearrange and concatenate for splicedA
+selectObject: carrier_beginning_1
+carrier_beginning_1_copy = Copy: "carrier_beginning_1"
+selectObject: target_2
+target_2_copy = Copy: "target_2"
+selectObject: carrier_end_1
+carrier_end_1_copy = Copy: "carrier_end_1"
+
+# Concatenate them
+selectObject: carrier_beginning_1_copy
+plusObject: target_2_copy
+plusObject: carrier_end_1_copy
+splicedA = Concatenate
+
+# Rename splicedA to show that it contains the target from tg_slice in tg_cut context
+Rename: "slice_spliced_in_cut"
+
+# Save splicedA to the specified directory
+Write to WAV file: "C:OutputDirectory\slice_spliced_in_cut.wav"
+
+# Remove unneeded objects
+selectObject: carrier_beginning_1
+plusObject: target_2
+plusObject: carrier_end_1
+plusObject: carrier_beginning_1_copy
+plusObject: target_2_copy
+plusObject: carrier_end_1_copy
+Remove
+
+# Repeat concatenation and renaming for splicedB
+selectObject: carrier_beginning_2
+carrier_beginning_2_copy = Copy: "carrier_beginning_2"
+selectObject: target_1
+target_1_copy = Copy: "target_1"
+selectObject: carrier_end_2
+carrier_end_2_copy = Copy: "carrier_end_2"
+
+# Concatenate them
+selectObject: carrier_beginning_2_copy
+plusObject: target_1_copy
+plusObject: carrier_end_2_copy
+splicedB = Concatenate
+
+# Rename splicedB to show that it contains the target from tg_cut in tg_slice context
+Rename: "cut_spliced_in_slice"
+
+# Save splicedB to the specified directory
+Write to WAV file: "C:OutputDirectory\cut_spliced_in_slice.wav"
+
+# Remove unneeded objects
+selectObject: carrier_beginning_2
+plusObject: target_1
+plusObject: carrier_end_2
+plusObject: carrier_beginning_2_copy
+plusObject: target_1_copy
+plusObject: carrier_end_2_copy
+Remove
+
