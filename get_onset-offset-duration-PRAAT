@@ -1,0 +1,80 @@
+######################################################################
+# Extracting timepoints of labelled speech
+#   
+#  This script extracts from labelled segments on tier 1:
+#				 start point, end point and duration and midInterval point	
+#  Amended from the initial script that analysed all vowels (c) Wendy Elvira García (2017), 
+#
+#  Specified labels to extract metrics have been defined as "primer" and "target", additional segments can be included. 
+#
+#	  Output to a CSV folder. 
+#
+#  (c) Lucy Jackson (2024)/https://lucy-jackson.github.io/
+#######################################################################
+
+form Files
+    sentence Folder C:\DirectoryPath
+    comment In which tier do you have the sound per sound segmentation with your vowels labelled?
+    integer tier 1
+    comment _
+    comment Data for vowel duration analysis
+    positive Time_step 0.01
+    integer Maximum_number_of_formants 5
+    positive Maximum_formant_(Hz) 5500
+    positive Window_length_(s) 0.025
+    real Preemphasis_from_(Hz) 50
+    comment _
+    comment _
+endform
+
+#################################
+#################################
+
+# Define the output path for the single results file
+outputPath$ = "C:Outputpath\results.csv"
+
+# Create the output file and write the header row
+writeFileLine: outputPath$, "fileName", tab$, "segment", tab$, "startPoint", tab$, "endPoint", tab$, "duration_ms", tab$, "midInterval"
+
+# Index files for loop
+myList = Create Strings as file list: "myList", folder$ + "\\" + "*.wav"
+nFiles = Get number of strings
+
+# Loop through all files in the folder
+for file to nFiles
+    selectObject: myList
+    nameFile$ = Get string: file
+    base$ = nameFile$ - ".wav"
+    myTextGrid = Read from file: folder$ + "\\" + base$ + ".TextGrid"
+    mySound = Read from file: folder$ + "\\" + nameFile$
+    selectObject: myTextGrid
+    nOfIntervals = Get number of intervals: tier
+    Convert to Unicode
+
+    # Loop through intervals
+    for nInterval to nOfIntervals
+        selectObject: myTextGrid
+        labelOfInterval$ = Get label of interval: tier, nInterval
+
+        # Perform actions only for vowels
+        if index(labelOfInterval$, "primer") <> 0 or 
+	... index(labelOfInterval$, "target") <> 0
+            # Get times and calculate duration
+            endPoint = Get end point: tier, nInterval
+            startPoint = Get starting point: tier, nInterval
+            durInterval = endPoint - startPoint
+            durIntervalms = durInterval * 1000
+            midInterval = startPoint + (durInterval / 2)
+
+            # Save result to the single output CSV file
+            appendFile: outputPath$, base$, tab$, labelOfInterval$, tab$, startPoint, tab$, endPoint, tab$, durIntervalms, tab$, midInterval, newline$
+        endif
+    # End of loop for intervals
+    endfor
+# End of loop for files
+endfor
+
+# Cleanup
+removeObject: myList
+echo Done.
+
