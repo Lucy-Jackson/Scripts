@@ -1,5 +1,5 @@
 ######################################################################################################################
-#                Text-Image Generator R Script
+#                Left-Join Example R Script
 # This R script exemplifies how to perform a left-join on two .csv files
 #
 # Example: 
