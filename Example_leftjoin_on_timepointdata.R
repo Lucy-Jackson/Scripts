@@ -44,12 +44,7 @@
 # (c) Lucy Jackson (2024)/https://lucy-jackson.github.io/
 ######################################################################################################################
 
-library(ggplot2)
-library(tidyverse)
-library(knitr)
-library(kableExtra)
-library(tidyr)
-library(dplyr)
+library(dplyr) # Load in relevant packages
 
 # Load in the first dataset
 data1 <- read.csv("data1.csv", stringsAsFactors = TRUE)
